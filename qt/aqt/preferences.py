@@ -6,6 +6,7 @@ from __future__ import annotations
 import functools
 import re
 from collections.abc import Callable
+from typing import cast
 
 import anki.lang
 import aqt
@@ -46,6 +47,24 @@ class Preferences(QDialog):
             self.form.network_timeout,
         ):
             spinbox.setSuffix(f" {spinbox.suffix()}")
+            
+            # Prevent selecting spinboxes' suffixes or placing the cursor after them
+            class UnitSpinBoxEventFilter(QObject):
+                def eventFilter(self, spinbox: QObject | None, evt: QEvent | None) -> bool:
+                    assert isinstance(spinbox, QSpinBox)
+                    # maximum position of the cursor
+                    posAfterValue = len(str(spinbox.value()))
+                    lineEdit = cast(QLineEdit, spinbox.lineEdit())
+                    if evt.type() == QEvent.Type.InputMethodQuery and lineEdit.cursorPosition() > posAfterValue:
+                        if lineEdit.hasSelectedText():
+                            absoluteSelectionEnd = lineEdit.selectionStart() + lineEdit.selectionLength()
+                            if absoluteSelectionEnd > posAfterValue:
+                                lineEdit.setSelection(lineEdit.selectionStart(), posAfterValue - lineEdit.selectionStart())
+                        else:
+                            lineEdit.setCursorPosition(posAfterValue)
+                    return False
+
+            spinbox.installEventFilter(UnitSpinBoxEventFilter(mw))
 
         disable_help_button(self)
         help_button = self.form.buttonBox.button(QDialogButtonBox.StandardButton.Help)
