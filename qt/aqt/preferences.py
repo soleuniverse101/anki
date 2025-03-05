@@ -58,7 +58,7 @@ class Preferences(QDialog):
                     posAfterValue = len(str(spinbox.value()))
                     lineEdit = cast(QLineEdit, spinbox.lineEdit())
                     if (
-                        evt.type() == QEvent.Type.InputMethodQuery
+                        cast(QEvent, evt).type() == QEvent.Type.InputMethodQuery
                         and lineEdit.cursorPosition() > posAfterValue
                     ):
                         if lineEdit.hasSelectedText():
