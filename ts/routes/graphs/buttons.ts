@@ -130,31 +130,78 @@ export function renderButtons(
         .domain(["learning", "young", "mature"])
         .range([bounds.marginLeft, bounds.width - bounds.marginRight]);
     svg.select<SVGGElement>(".x-ticks")
-        .call((selection) =>
-            selection.transition(trans).call(
-                axisBottom(xGroup)
-                    .tickFormat(
-                        ((d: GroupKind) => {
-                            let kind: string;
-                            switch (d) {
-                                case "learning":
-                                    kind = tr.statisticsCountsLearningCards();
-                                    break;
-                                case "young":
-                                    kind = tr.statisticsCountsYoungCards();
-                                    break;
-                                case "mature":
-                                default:
-                                    kind = tr.statisticsCountsMatureCards();
-                                    break;
-                            }
-                            return `${kind} \u200e(${totalCorrect(d).percent}%)`;
-                        }) as any,
-                    )
-                    .tickSizeOuter(0),
-            )
+        .attr("opacity", 0)
+        .call(
+            axisBottom(xGroup)
+                .tickFormat(
+                    ((d: GroupKind) => {
+                        let kind: string;
+                        switch (d) {
+                            case "learning":
+                                kind = tr.statisticsCountsLearningCards();
+                                break;
+                            case "young":
+                                kind = tr.statisticsCountsYoungCards();
+                                break;
+                            case "mature":
+                            default:
+                                kind = tr.statisticsCountsMatureCards();
+                                break;
+                        }
+                        return `${kind} \u200e(${totalCorrect(d).percent}%)`;
+                    }) as any,
+                )
+                .tickSizeOuter(0),
         )
-        .attr("direction", "ltr");
+        .attr("direction", "ltr")
+        // Credit : https://gist.github.com/mbostock/7555321
+        .call((selection) =>
+            selection.selectAll(".tick text")
+                .call(function wrap(text, width) {
+                    text.each(function() {
+                        const text = select(this);
+                        const lineHeight = 1.1; // ems
+                        const y = text.attr("y");
+                        const dy = parseFloat(text.attr("dy"));
+
+                        const words = text.text().split(/\s+/);
+                        let currentTSpan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr(
+                            "dy",
+                            dy + "em",
+                        );
+                        let currentLine: string[] = [];
+                        let lineIndex = 0;
+
+                        let heightShift = 0;
+
+                        for (const word of words) {
+                            currentLine.push(word);
+                            currentTSpan.text(currentLine.join(" "));
+                            if (currentTSpan.node()!.getComputedTextLength() > width) {
+                                currentLine.pop();
+                                currentTSpan.text(currentLine.join(" "));
+                                currentLine = [word];
+                                const newHeight = ++lineIndex * lineHeight + dy;
+                                const viewBoxUnitsPerLine = 16;
+                                heightShift += viewBoxUnitsPerLine;
+                                currentTSpan = text.append("tspan").attr("x", 0).attr("y", y).attr(
+                                    "dy",
+                                    `${newHeight}em`,
+                                ).text(word);
+                            }
+                        }
+
+                        if (heightShift > 0) {
+                            const viewBoxDimensions = svg.attr("viewBox").split(" ");
+                            const viewBoxHeight = parseFloat(viewBoxDimensions[3]);
+                            viewBoxDimensions[3] = "" + (viewBoxHeight + heightShift);
+                            svg.attr("viewBox", viewBoxDimensions.join(" "));
+                        }
+                    });
+                }, xGroup.bandwidth())
+        )
+        .transition(trans)
+        .attr("opacity", 1);
 
     const xButton = scaleBand()
         .domain(["1", "2", "3", "4"])
