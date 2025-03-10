@@ -53,12 +53,13 @@ class Preferences(QDialog):
                 def eventFilter(
                     self, spinbox: QObject | None, evt: QEvent | None
                 ) -> bool:
-                    assert isinstance(spinbox, QSpinBox)
+                    if not isinstance(spinbox, QSpinBox) or not isinstance(evt, QEvent):
+                        return False
                     # maximum position of the cursor
                     posAfterValue = len(str(spinbox.value()))
                     lineEdit = cast(QLineEdit, spinbox.lineEdit())
                     if (
-                        cast(QEvent, evt).type() == QEvent.Type.InputMethodQuery
+                        evt.type() == QEvent.Type.InputMethodQuery
                         and lineEdit.cursorPosition() > posAfterValue
                     ):
                         if lineEdit.hasSelectedText():
