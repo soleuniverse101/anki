@@ -6,7 +6,6 @@ from __future__ import annotations
 import functools
 import re
 from collections.abc import Callable
-from typing import cast
 
 import anki.lang
 import aqt
@@ -57,7 +56,9 @@ class Preferences(QDialog):
                         return False
                     # maximum position of the cursor
                     posAfterValue = len(str(spinbox.value()))
-                    lineEdit = cast(QLineEdit, spinbox.lineEdit())
+                    lineEdit = spinbox.lineEdit()
+                    if lineEdit is None:
+                        return False
                     if (
                         evt.type() == QEvent.Type.InputMethodQuery
                         and lineEdit.cursorPosition() > posAfterValue
